@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="gameCanvas" width="700" height="500"></canvas>
+    <script>
+        const FPS = 30;
+        const FRICTION = 0.7; //friction coefficient
+        const ROIDS_NUM = 3;
+        const ROIDS_SIZE = 100;
+        const ROIDS_SPD = 50;
+        const ROIDS_VERT = 10;
+        const SHIP_SIZE = 30;
+        const TURN_SPEED = 360; // turn speed in degrees per second
+        const SHIP_THURST = 5;
+
+
+        var canv = document.getElementById("gameCanvas");
+        var ctx = canv.getContext("2d");
+
+        var ship = {
+            x: canv.width/2,
+            y: canv.height/2, 
+            r: SHIP_SIZE/2, 
+            a: 90/180 * Math.PI, //converting to radians
+            rot:0,
+            thrust: {
+                x: 0,
+                y: 0
+            }
+        }
+        
+        var roids = [];
+        createAsteroidBelt();
+        document.addEventListener("keydown", keyDown);
+        document.addEventListener("keyup", keyUp); 
+
+
+        setInterval(update, 1000/FPS);
+        
+        function createAsteroidBelt(){
+            roids = [];
+            for(var i = 0; i < ROIDS_NUM; i++){
+                x = Math.floor(Math.random() + canv.width);
+                y = Math.floor(Math.random() + canv.height);
+                roids.push(newAsteroid(x,y));
+            }
+        };
+        function keyDown(/** @type {KeyboardEvent} */ ev){
+            switch(ev.keyCode){
+                case 37:
+                    ship.rot=TURN_SPEED/180 * Math.PI /FPS;
+                    break;
+                case 38:
+                    ship.thrusting = true;
+                    break;
+                case 39:
+                    ship.rot=-TURN_SPEED/180 * Math.PI /FPS;
+                    break;
+                    
+            }
+        };
+        function keyUp(/** @type {KeyboardEvent} */ ev){
+            switch(ev.keyCode){
+                case 37:
+                    ship.rot=0;
+                    break;
+                case 38:
+                    ship.thrusting=false;
+                    break;
+                case 39:
+                    ship.rot=0;
+                    break;
+                    
+            }
+        };
+        function newAsteroid(x,y){
+            var roid = {
+                x: x,
+                y: y,
+                xv: Math.random() * ROIDS_SPD / FPS* (Math.random() < 0.5 ? 1 : -1),
+                yv: Math.random() * ROIDS_SPD / FPS* (Math.random() < 0.5 ? 1 : -1),
+                r: ROIDS_SIZE/2,
+                a: Math.random() * Math.PI* 2, // in radians
+                vert: Math.floor(Math.random() *(ROIDS_VERT + 1)+ ROIDS_VERT/2)
+            };
+        }
+        function update() {
+            // draw space
+            ctx.fillStyle ="black";
+            ctx.fillRect(0,0,canv.width,canv.height);
+            
+            //thrust the ship 
+
+            if(ship.thrusting) {
+                ship.thrust.x += SHIP_THURST*Math.cos(ship.a)/FPS;
+                ship.thrust.y -= SHIP_THURST*Math.sin(ship.a)/FPS;
+
+                //draw the thrust 
+                ctx.fillStyle = "red";
+                ctx.strokeStyle = "yellow";
+                ctx.lineWidth = SHIP_SIZE/10;
+                ctx.beginPath();
+                ctx.moveTo( //rear left
+                    ship.x - ship.r* (2/3*Math.cos(ship.a) + 0.5 *Math.sin(ship.a)),
+                    ship.y + ship.r* (2/3*Math.sin(ship.a) - 0.5*Math.cos(ship.a))
+                    );
+                ctx.lineTo( //rear centre behind the ship
+                    ship.x - ship.r* 6/3*Math.cos(ship.a),
+                    ship.y + ship.r* 6/3*Math.sin(ship.a)
+                );
+                ctx.lineTo( //rear right
+                    ship.x - ship.r* (2/3*Math.cos(ship.a) - 0.5* Math.sin(ship.a)),
+                    ship.y + ship.r* (2/3*Math.sin(ship.a) + 0.5* Math.cos(ship.a))
+                );
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+            else
+            {
+                ship.thrust.x -= FRICTION* ship.thrust.x/FPS;
+                ship.thrust.y -= FRICTION* ship.thrust.y/FPS;
+            }
+            // draw ship 
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = SHIP_SIZE/20;
+            ctx.beginPath();
+            ctx.moveTo( //nose of the ship
+                ship.x + 4/3*ship.r* Math.cos(ship.a),
+                ship.y - 4/3*ship.r* Math.sin(ship.a)
+                );
+            ctx.lineTo( //rear left
+                ship.x - ship.r* (2/3*Math.cos(ship.a) + Math.sin(ship.a)),
+                ship.y + ship.r* (2/3*Math.sin(ship.a) - Math.cos(ship.a))
+            );
+            ctx.lineTo( //rear right
+                ship.x - ship.r* (2/3*Math.cos(ship.a) - Math.sin(ship.a)),
+                ship.y + ship.r* (2/3*Math.sin(ship.a) + Math.cos(ship.a))
+            );
+            ctx.closePath();
+            ctx.stroke();
+
+            //draw Asteroids
+            // ctx.strokeStyle = "slategrey";
+            // ctx.lineWidth =SHIP_SIZE/20;
+            // for (var i = 0; i <roids.length; i++){
+            //     var x,y,r,a,vert;
+            //     x = roids[i].x;
+            //     y = roids[i].y;
+            //     r= roids[i].r;
+            //     a= roids[i].a;
+            //     vert= roids[i].vert;
+            //     //draw a path between
+            //     ctx.beginPath();
+            //     ctx.moveTo(
+            //         x + r * Math.cos(a),
+            //         y + r * Math.sin(a)
+
+            //     );
+            //     //draw a polygon
+            //     for (var j = 0; j <vert; j++){
+            //         ctx.lineTo(
+            //             x+r* Math.cos(a +j * Math.PI * 2/vert),
+            //             y+r* Math.cos(a +j * Math.PI * 2/vert)
+            //         );
+            //     }
+            //     ctx.closePath();
+            //     ctx.stroke();
+            //     //move the asteroids around
+
+            //     //handle edge of screen
+
+            // }
+
+            // rotate ship 
+            ship.a += ship.rot;
+            // move the ship 
+            ship.x += ship.thrust.x;
+            ship.y += ship.thrust.y;
+
+            //handle edge of the screen 
+            if (ship.x < 0 - ship.r){
+                ship.x = canv.width+ ship.r;
+            }
+            else if (ship.x>canv.width + ship.r){
+                ship.x = 0 - ship.r;
+            }
+            if (ship.y < 0 - ship.r){
+                ship.y = canv.height+ ship.r;
+            }
+            else if (ship.y>canv.height + ship.r){
+                ship.y = 0 - ship.r;
+            }
+            
+            //centre dot
+            ctx.fillStyle ="red";
+            ctx.fillRect(ship.x -1, ship.y -1, 2,2)
+        }
+    </script>
+</body>
+</html>
